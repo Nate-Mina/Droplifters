@@ -1,0 +1,117 @@
+<div class="min-h-screen bg-gray-50 flex flex-col font-sans">
+  <mat-toolbar color="primary" class="shadow-md z-10 flex items-center justify-between px-4 md:px-8">
+    <div class="flex items-center gap-2">
+      <mat-icon>security</mat-icon>
+      <span class="font-bold text-xl tracking-tight">Lexius AI Security</span>
+    </div>
+    <div class="flex items-center gap-4">
+      <input type="file" #fileInput accept="video/*" class="hidden" (change)="handleFileUpload($event)">
+      <button mat-flat-button color="primary" (click)="triggerFileInput()" class="rounded-full px-6 border border-white/20">
+        <div class="flex items-center gap-2">
+          <mat-icon>upload_file</mat-icon>
+          <span class="font-medium">Test Video</span>
+        </div>
+      </button>
+      <button mat-flat-button [color]="isMonitoring() ? 'warn' : 'accent'" (click)="toggleMonitoring()" class="rounded-full px-6">
+        <div class="flex items-center gap-2">
+          <mat-icon>{{ isMonitoring() ? 'stop' : 'play_arrow' }}</mat-icon>
+          <span class="font-medium">{{ isMonitoring() ? 'Live Camera' : 'Live Camera' }}</span>
+        </div>
+      </button>
+    </div>
+  </mat-toolbar>
+
+  <main class="flex-grow p-4 md:p-8 flex flex-col lg:flex-row gap-8 max-w-[1600px] mx-auto w-full">
+    
+    <!-- Camera Feed Column -->
+    <div class="flex-grow flex flex-col gap-6">
+      <div class="bg-black rounded-3xl shadow-2xl border border-gray-800 overflow-hidden relative aspect-video flex items-center justify-center">
+        <video #videoElement class="w-full h-full object-cover" [class.hidden]="!isMonitoring()" playsinline muted></video>
+        
+        @if (!isMonitoring()) {
+          <div class="absolute inset-0 flex flex-col items-center justify-center text-gray-400 bg-gray-900">
+            <mat-icon class="text-6xl mb-4 opacity-50">videocam_off</mat-icon>
+            <p class="text-xl font-medium text-gray-300">Camera Offline</p>
+            <p class="text-sm opacity-75 mt-2">Click Start Monitoring to begin AI analysis</p>
+          </div>
+        }
+        
+        @if (isMonitoring()) {
+          <div class="absolute top-6 left-6 flex items-center gap-3 bg-black/60 backdrop-blur-md text-white px-4 py-2 rounded-full text-sm font-bold tracking-wider border border-white/10 shadow-lg">
+            <div class="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse shadow-[0_0_10px_rgba(239,68,68,0.8)]"></div>
+            LIVE AI ANALYSIS
+          </div>
+        }
+      </div>
+
+      <!-- Latest Alert Banner -->
+      @if (latestEvent()) {
+        <div class="rounded-2xl shadow-lg border-l-8 p-6 transition-all duration-300 transform hover:scale-[1.01]" [ngClass]="getEventColor(latestEvent().type)">
+          <div class="flex items-start gap-6">
+            <div class="p-4 rounded-full bg-white/60 shadow-sm">
+              <mat-icon class="text-4xl">{{ getEventIcon(latestEvent().type) }}</mat-icon>
+            </div>
+            <div class="flex-grow">
+              <div class="flex items-center gap-3 mb-2">
+                <h3 class="font-black text-2xl uppercase tracking-widest">{{ latestEvent().type }} DETECTED</h3>
+                <span class="text-sm font-bold px-3 py-1 rounded-full bg-white/60 shadow-sm">
+                  {{ latestEvent().confidence | percent }} Confidence
+                </span>
+              </div>
+              <p class="text-lg opacity-90 font-medium leading-relaxed">{{ latestEvent().description }}</p>
+              <p class="text-sm opacity-75 mt-3 font-mono">{{ latestEvent().timestamp | date:'medium' }}</p>
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+
+    <!-- Events Log Column -->
+    <div class="w-full lg:w-[450px] flex flex-col gap-6">
+      <div class="flex-grow flex flex-col bg-white shadow-xl rounded-3xl border border-gray-100 overflow-hidden h-[800px]">
+        <div class="border-b border-gray-100 p-6 bg-gray-50/50 z-10 flex items-center justify-between">
+          <h2 class="font-bold text-xl flex items-center gap-3 text-gray-800">
+            <mat-icon class="text-gray-500">history</mat-icon>
+            Incident Log
+          </h2>
+          <span class="bg-gray-200 text-gray-700 text-xs font-bold px-3 py-1 rounded-full">{{ events().length }} Events</span>
+        </div>
+        
+        <div class="flex-grow overflow-y-auto p-0 bg-white">
+          @if (events().length === 0) {
+            <div class="h-full flex flex-col items-center justify-center text-gray-400 p-8 text-center">
+              <mat-icon class="text-6xl mb-4 opacity-30">check_circle_outline</mat-icon>
+              <p class="text-lg font-medium text-gray-500">No incidents detected yet.</p>
+              <p class="text-sm mt-2 opacity-75">The AI is actively monitoring the feed.</p>
+            </div>
+          } @else {
+            <div class="flex flex-col">
+              @for (event of events(); track event.id) {
+                <div class="p-5 border-b border-gray-50 hover:bg-gray-50 transition-colors flex gap-5 group">
+                  <div class="relative w-24 h-24 flex-shrink-0">
+                    <img [src]="event.imageUrl" class="w-full h-full object-cover rounded-xl shadow-sm border border-gray-200 group-hover:shadow-md transition-shadow" alt="Incident snapshot">
+                    <div class="absolute -top-2 -right-2 bg-white rounded-full p-0.5 shadow-sm">
+                      <mat-icon class="text-sm w-4 h-4 flex items-center justify-center" [ngClass]="getEventColor(event.type).split(' ')[1]">{{ getEventIcon(event.type) }}</mat-icon>
+                    </div>
+                  </div>
+                  <div class="flex-grow flex flex-col justify-center">
+                    <div class="flex items-center justify-between mb-2">
+                      <span class="text-xs font-bold uppercase tracking-wider px-2.5 py-1 rounded-md shadow-sm" [ngClass]="getEventColor(event.type)">
+                        {{ event.type }}
+                      </span>
+                      <span class="text-xs font-mono text-gray-400">{{ event.timestamp | date:'shortTime' }}</span>
+                    </div>
+                    <p class="text-sm text-gray-700 line-clamp-3 leading-snug">{{ event.description }}</p>
+                  </div>
+                </div>
+              }
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- Hidden canvas for frame capture -->
+<canvas #canvasElement class="hidden"></canvas>

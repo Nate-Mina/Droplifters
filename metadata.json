@@ -1,0 +1,7 @@
+{
+  "name": " DROPLIFTERS",
+  "description": "Real-time theft and fall detection using AI.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
